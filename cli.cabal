@@ -10,8 +10,8 @@ Description:
     .
 License:             BSD3
 License-file:        LICENSE
-Copyright:           Vincent Hanquez <vincent@snarc.org>
-Author:              Vincent Hanquez <vincent@snarc.org>
+Copyright:           Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
+Author:              Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
 Maintainer:          vincent@snarc.org
 Category:            cli
 Stability:           experimental
