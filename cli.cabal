@@ -1,5 +1,5 @@
 Name:                cli
-Version:             0.0.0
+Version:             0.1.0
 Synopsis:            Command Line Interface
 Description: 
     All you need for interacting with users at the Console level
