@@ -65,7 +65,7 @@ setDescription :: String -> Command r -> Command r
 setDescription desc  (Command hier _ opts act)    = Command hier desc opts act
 
 setAction :: Action r -> Command r -> Command r
-setAction act (Command hier desc opts _)   = Command hier desc opts (Just act)
+setAction act (Command hier desc opts _)   = Command hier desc opts (ActionWrapped act)
 
 addOption :: FlagDesc -> Command r -> Command r
 addOption opt   (Command hier desc opts act) = Command hier desc (opt : opts) act
@@ -184,8 +184,8 @@ runOptions pmeta ct allArgs
                                 Right (pinnedArgs, remainingArgs) -> do
                                     let flags = concat (opts:parsedOpts)
                                     case act of
-                                        Nothing -> OptionInvalid "no action defined"
-                                        Just a  ->
+                                        NoActionWrapped -> OptionInvalid "no action defined"
+                                        ActionWrapped a  ->
                                             let params = Params flags
                                                                 pinnedArgs
                                                                 remainingArgs

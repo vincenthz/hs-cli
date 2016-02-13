@@ -51,7 +51,7 @@ initialProgramDesc = ProgramDesc { stMeta        = programMetaDefault
                                  }
   where
     iniCommand :: Command r
-    iniCommand = Command (CommandLeaf []) "..." [] Nothing
+    iniCommand = Command (CommandLeaf []) "..." [] NoActionWrapped
 
 -- | Return the next unique argument ID
 getNextID :: OptionDesc r Nid

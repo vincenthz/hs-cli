@@ -7,6 +7,7 @@ module Console.Options.Types
     , Command(..)
     , CommandHier(..)
     , Action
+    , ActionWrapper(..)
     , UnnamedIndex
     -- * User Binders to retrieve their options
     , Flag(..)
@@ -61,7 +62,7 @@ data Command r = Command
     { getCommandHier        :: CommandHier r
     , getCommandDescription :: String
     , getCommandOptions     :: [FlagDesc]
-    , getCommandAction      :: Maybe (Action r)
+    , getCommandAction      :: ActionWrapper r
     }
 
 -- | Recursive command tree
@@ -77,7 +78,11 @@ data Params = Params
     }
 
 -- | Represent a program to run
-type Action r = (forall a p . Param p => p a -> Ret p a) -> r -- flags
+type Action r = (forall a p . Param p => p a -> Ret p a) -> r
+
+data ActionWrapper r = 
+      ActionWrapped (Action r)
+    | NoActionWrapped
 
 class Param p where
     type Ret p a :: *
