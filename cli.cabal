@@ -55,6 +55,7 @@ Test-Suite test-cli
   default-language:  Haskell2010
   Build-Depends:     base >= 3 && < 5
                    , directory
+                   , transformers
                    , tasty
                    , tasty-quickcheck
                    , QuickCheck
