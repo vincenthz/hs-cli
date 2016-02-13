@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Main (main) where
 
 import           Control.Applicative
@@ -7,7 +8,6 @@ import           Test.Tasty
 import           Test.Tasty.QuickCheck
 import           Test.QuickCheck.Monadic
 
-import           Storage.HashFS.Meta
 import           System.Directory
 import           Data.List
 import           Data.Monoid
@@ -24,7 +24,8 @@ commandFoo = command "foo" $ do
 --commandBar :: Monad m => OptionDesc (m Bool) ()
 commandBar :: OptionDesc (Identity Bool) ()
 commandBar = command "bar" $ do
-    a <- flagA
+    a  <- flagA
+    a2 <- argument "arg1" Right
     action $ \toParam -> do
         return True
 
@@ -34,11 +35,13 @@ testParseHelp name f = testProperty name $ runIdentity $ do
         _          -> return False
 
 testParseSuccess name values f =
-    testProperty name $ runIdentity $ do
+    testProperty name $
         let (_,r) = f
          in case r of
-                OptionSuccess p act -> return (sort values == sort (paramsFlags p)) --act (getParams p)
-                _                   -> return False
+                OptionSuccess p act -> runIdentity $ return (sort values == sort (paramsFlags p))
+                OptionHelp          -> error $ "got help expected success"
+                OptionError s       -> error $ "got error " ++ show s ++ " expected success"
+                OptionInvalid s     -> error $ "got invalid " ++ show s ++ " expected success"
 
 main = defaultMain $ testGroup "options"
     [ testGroup "help"
@@ -46,7 +49,7 @@ main = defaultMain $ testGroup "options"
         , testParseHelp "2" $ parseOptions (commandBar) ["options", "argument", "-h", "a"]
         ]
     , testGroup "success"
-        [ testParseSuccess "1" [] $ parseOptions (commandBar) ["bar", "-a", "option-a"]
+        [ testParseSuccess "1" [] $ parseOptions (commandBar >> commandFoo) ["bar", "arg1"]
         , testParseSuccess "2" [] $ parseOptions (commandBar >> commandFoo) ["foo", "a"]
         ]
     ]
