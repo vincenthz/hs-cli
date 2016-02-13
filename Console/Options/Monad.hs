@@ -9,6 +9,7 @@ module Console.Options.Monad
     , getNextIndex
     ) where
 
+import           Control.Applicative
 import           Console.Options.Nid
 import           Console.Options.Types
 import           Console.Options.Utils
