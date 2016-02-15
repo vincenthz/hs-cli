@@ -17,7 +17,7 @@ module Console.Options.Types
     , Arg(..)
     , ArgRemaining(..)
     , Params(..)
-    , Param (Ret)
+    , Param(..)
     , getParams
     ) where
 
@@ -90,6 +90,7 @@ data ActionWrapper r =
       ActionWrapped (Action r)
     | NoActionWrapped
 
+-- | Transform a binded argument or flag into a haskell value
 class Param p where
     -- | Return value data type associated with a specific Param shape.
     type Ret p a :: *
