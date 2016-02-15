@@ -28,10 +28,11 @@ data FlagDesc = FlagDesc
     , flagArity         :: Int
     }
 
+-- | Fragment of flag definition
 data FlagFrag =
-      FlagShort       Char
-    | FlagLong        String
-    | FlagDescription String
+      FlagShort       Char   -- ^ short option e.g. '-a'
+    | FlagLong        String -- ^ long option e.g. "--aaaa"
+    | FlagDescription String -- ^ description of this flag.
     -- | FlagDefault     String
     | FlagMany        [FlagFrag]
     deriving (Show,Eq)

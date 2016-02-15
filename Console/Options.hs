@@ -4,6 +4,44 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+-- |
+-- Module      : Console.Options
+-- License     : BSD-style
+-- Maintainer  : Vincent Hanquez <vincent@snarc.org>
+-- Stability   : experimental
+-- Portability : Good
+--
+-- Options parsing using a simple DSL approach.
+--
+-- Using this API, your program should have the following shape:
+--
+-- >defaultMain $ do
+-- >    f1 <- flag ..
+-- >    f2 <- argument ..
+-- >    action $ \toParam ->
+-- >        something (toParam f1) (toParam f2) ..
+--
+-- You can also define subcommand using:
+--
+-- >defaultMain $ do
+-- >    subcommand "foo" $ do
+-- >       <..flags & parameters definitions...>
+-- >       action $ \toParam -> <..IO-action..>
+-- >    subcommand "bar" $ do
+-- >       <..flags & parameters definitions...>
+-- >       action $ \toParam -> <..IO-action..>
+--
+-- Example:
+--
+-- >main = defaultMain $ do
+-- >    programName "test-cli"
+-- >    programDescription "test CLI program"
+-- >    flagA    <- flag $ FlagShort 'a' <> FlagLong "aaa"
+-- >    allArgs  <- remainingArguments "FILE"
+-- >    action $ \toParam -> do
+-- >        putStrLn $ "using flag A : " ++ show (toParam flagA)
+-- >        putStrLn $ "args: " ++ show (toParam allArgs)
+--
 module Console.Options
     (
     -- * Running
@@ -21,7 +59,7 @@ module Console.Options
     , flag
     , flagParam
     , flagMany
-    , conflict
+    -- , conflict
     , argument
     , remainingArguments
     , action
@@ -35,7 +73,8 @@ module Console.Options
     , FlagMany
     , Arg
     , ArgRemaining
-    , Params(..)
+    , Params
+    , paramsFlags
     , getParams
     ) where
 
@@ -86,21 +125,29 @@ addArg arg = modifyHier $ \hier ->
         CommandTree {} -> hier -- ignore argument in a hierarchy.
 ----------------------------------------------------------------------
 
+-- | A parser for a flag's value, either optional or required.
 data FlagParser a =
-      FlagRequired (ValueParser a)
-    | FlagOptional a (ValueParser a)
+      FlagRequired (ValueParser a)   -- ^ flag value parser with a required parameter.
+    | FlagOptional a (ValueParser a) -- ^ Optional flag value parser: Default value if not present to a
 
 type ValueParser a = String -> Either String a
 
+-- | return value of the option parser. only needed when using 'parseOptions' directly
 data OptionRes r =
       OptionSuccess Params (Action r)
     | OptionHelp
     | OptionError String -- user cmdline error in the arguments
     | OptionInvalid String -- API has been misused
 
+-- | run parse options description on the action
+--
+-- to be able to specify the arguments manually (e.g. pre-handling),
+-- you can use 'defaultMainWith'.
+-- >defaultMain dsl = getArgs >>= defaultMainWith dsl
 defaultMain :: OptionDesc (IO ()) () -> IO ()
 defaultMain dsl = getArgs >>= defaultMainWith dsl
 
+-- | same as 'defaultMain', but with the argument
 defaultMainWith :: OptionDesc (IO ()) () -> [String] -> IO ()
 defaultMainWith dsl args = do
     let (programDesc, res) = parseOptions dsl args
@@ -110,6 +157,10 @@ defaultMainWith dsl args = do
         OptionSuccess params r -> r (getParams params)
         OptionInvalid s        -> putStrLn s >> exitFailure
 
+-- | This is only useful when you want to handle all the description parsing
+-- manually and need to not automatically execute any action or help/error handling.
+--
+-- Used for testing the parser.
 parseOptions :: OptionDesc r () -> [String] -> (ProgramDesc r, OptionRes r)
 parseOptions dsl args =
     let descState = gatherDesc dsl
@@ -300,6 +351,9 @@ flagParam frag fp = do
 
     isValid f = either FlagArgInvalid (const FlagArgValid) . f
 
+-- | Apply on a 'flagParam' to turn into a flag that can
+-- be invoked multiples, creating a list of values
+-- in the action.
 flagMany :: OptionDesc r (FlagParam a) -> OptionDesc r (FlagMany a)
 flagMany fp = do
     f <- fp
@@ -329,7 +383,7 @@ flag frag = do
     modify $ \st -> st { stCT = addOption opt (stCT st) }
     return (Flag nid)
 
--- | An unnamed argument
+-- | An unnamed positional argument
 --
 -- For now, argument in a point of tree that contains sub trees will be ignored.
 -- TODO: record a warning or add a strict mode (for developping the CLI) and error.
@@ -343,6 +397,10 @@ argument name fp = do
     modifyCT $ addArg a
     return (Arg idx (either (error "internal error") id . fp))
 
+-- | All the remaining position arguments
+--
+-- This is useful for example for a program that takes an unbounded list of files
+-- as parameters.
 remainingArguments :: String -> OptionDesc r (ArgRemaining [String])
 remainingArguments name = do
     let a = ArgumentCatchAll { argumentName        = name

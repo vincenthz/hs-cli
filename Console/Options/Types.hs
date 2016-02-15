@@ -17,7 +17,7 @@ module Console.Options.Types
     , Arg(..)
     , ArgRemaining(..)
     , Params(..)
-    , Param
+    , Param (Ret)
     , getParams
     ) where
 
@@ -36,21 +36,27 @@ data Argument =
         , argumentDescription :: String
         }
 
+-- | Represent a boolean flag (present / not present)
 data Flag a where
     Flag       :: Nid -> Flag Bool
 
+-- | Represent a Flag that can be called multiples times and will increase a counter.
 data FlagLevel a where
     FlagLevel  :: Nid -> FlagLevel Int
 
+-- | Represent a Flag with an optional or required value associated
 data FlagParam a where
     FlagParamOpt     :: Nid -> a -> (String -> a) -> FlagParam a
     FlagParam        :: Nid -> (String -> a) -> FlagParam a
 
+-- | Represent a Flag with optional or required value that can be added multiple times
 newtype FlagMany a = FlagMany (FlagParam a)
 
+-- | A positional argument
 data Arg a where
     Arg           :: UnnamedIndex -> (String -> a) -> Arg a
 
+-- | All the remaining positional arguments
 data ArgRemaining a where
     ArgsRemaining :: ArgRemaining [String]
 
@@ -70,7 +76,7 @@ data CommandHier r =
       CommandTree [(String, Command r)]
     | CommandLeaf [Argument]
 
-
+-- | A dictionary of parsed flags and arguments
 data Params = Params
     { paramsFlags         :: [(Nid, Maybe String)]
     , paramsPinnedArgs    :: [String]
@@ -85,7 +91,9 @@ data ActionWrapper r =
     | NoActionWrapped
 
 class Param p where
+    -- | Return value data type associated with a specific Param shape.
     type Ret p a :: *
+    -- | get the value associated with a specific Param (either a Flag, FlagParam, or an Arg)
     getParams :: Params -> (forall a . p a -> Ret p a)
 
 {-

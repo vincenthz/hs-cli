@@ -36,7 +36,7 @@ data ProgramMeta = ProgramMeta
 programMetaDefault :: ProgramMeta
 programMetaDefault = ProgramMeta Nothing Nothing Nothing ["-h", "--help"]
 
--- OptionDesc (return value of action) a
+-- | Option description Monad
 newtype OptionDesc r a = OptionDesc { runOptionDesc :: StateT (ProgramDesc r) Identity a }
     deriving (Functor,Applicative,Monad,MonadState (ProgramDesc r))
 

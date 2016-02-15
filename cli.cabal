@@ -37,7 +37,7 @@ Library
                    , transformers
                    , mtl
                    , terminfo
-  ghc-options:       -Wall -fwarn-tabs
+  ghc-options:       -Wall -fwarn-tabs -fno-warn-unused-imports
   default-language:  Haskell2010
 
 
