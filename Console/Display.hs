@@ -1,3 +1,12 @@
+-- |
+-- Module      : Console.Display
+-- License     : BSD-style
+-- Maintainer  : Vincent Hanquez <vincent@snarc.org>
+-- Stability   : experimental
+-- Portability : Good
+--
+-- Displaying utilities
+--
 module Console.Display
     ( TerminalDisplay
     -- * Basic
@@ -35,13 +44,7 @@ import           System.Console.Terminfo
 import           System.IO
 import           Data.List
 
-{-
-data LineWidget =
-      Text
-    | Progress
-    | Done
--}
-
+-- | Element to output text and attributes to the display
 data OutputElem =
       Bg Color
     | Fg Color
@@ -51,14 +54,17 @@ data OutputElem =
     | NA
     deriving (Show,Eq)
 
+-- | Terminal display state
 data TerminalDisplay = TerminalDisplay (MVar Bool) Terminal
 
+-- | Create a new display
 displayInit :: IO TerminalDisplay
 displayInit = do
     hSetBuffering stdout NoBuffering
     cf <- newMVar False
     TerminalDisplay cf <$> setupTermFromEnv
 
+-- | Display
 display :: TerminalDisplay -> [OutputElem] -> IO ()
 display tdisp@(TerminalDisplay clearFirst term) oelems = do
     cf <- modifyMVar clearFirst $ \cf -> return (False, cf)
@@ -81,17 +87,21 @@ renderOutput (TerminalDisplay _ term) to = mconcat $ map toTermOutput to
         toTermOutput (RightT sz t)  = termText (replicate (sz - length t) ' ' ++ t)
         toTermOutput NA     = rD
 
+-- | A simple utility that display a @msg@ in @color@
 displayTextColor :: TerminalDisplay -> Color -> String -> IO ()
 displayTextColor term color msg = do
     display term [Fg color, T msg]
 
+-- | A simple utility that display a @msg@ in @color@ and newline at the end.
 displayLn :: TerminalDisplay -> Color -> String -> IO ()
 displayLn disp color msg = displayTextColor disp color (msg ++ "\n")
 
+-- | Progress bar widget
 data ProgressBar = ProgressBar TerminalDisplay ProgressBackend (MVar ProgressState)
 
 type ProgressBackend = String -> IO ()
 
+-- | Summary
 data Summary = Summary SummaryBackend
 type SummaryBackend = [OutputElem] -> IO ()
 
@@ -110,6 +120,7 @@ initProgressState maxItems = ProgressState
     , pgCurrent = 0
     }
 
+-- | Create a new progress bar context
 progress :: TerminalDisplay
          -> Int
          -> (ProgressBar -> IO a)
@@ -167,17 +178,20 @@ showBar (ProgressBar _ backend pgsVar) = do
         currentProgress :: Double
         currentProgress = fromIntegral maxItems / fromIntegral current
 
+-- | Start displaying the progress bar
 progressStart :: ProgressBar -> IO ()
 progressStart pbar = do
     showBar pbar
     return ()
 
+-- | Tick an element on the progress bar
 progressTick :: ProgressBar -> IO ()
 progressTick pbar@(ProgressBar _ _ st) = do
     modifyMVar_ st $ \pgs -> return $ pgs { pgCurrent = min (pgMax pgs) (pgCurrent pgs + 1) }
     showBar pbar
     return ()
 
+-- | Create a summary
 summary :: TerminalDisplay -> IO Summary
 summary tdisp@(TerminalDisplay cf term) = do
     let b = backend (getCapability term cursorDown)
@@ -195,12 +209,15 @@ summary tdisp@(TerminalDisplay cf term) = do
     backend _ _ _ = \msg ->
         runTermOutput term $ mconcat [renderOutput tdisp msg]
 
+-- | Set the summary
 summarySet :: Summary -> [OutputElem] -> IO ()
 summarySet (Summary backend) output = do
     backend output
 
+-- | Justify position
 data Justify = JustifyLeft | JustifyRight
 
+-- | box a string to a specific size, choosing the justification
 justify :: Justify -> Int -> String -> String
 justify dir sz s
     | sz <= szS = s
@@ -262,29 +279,43 @@ toElem attr =
      in mconcat [j,fwc,bgc, [T $ attrText attr,NA]]
 -}
 
--- column
+-- | Column for a table
 data Column = Column
-    { columnSize    :: Int
-    , columnName    :: String
-    , columnJustify :: Justify
-    , columnWrap    :: Bool
+    { columnSize    :: Int     -- ^ Size of the column
+    , columnName    :: String  -- ^ Name of the column. used in 'tableHeaders'
+    , columnJustify :: Justify -- ^ The justification to use for the cell of this column
+    , columnWrap    :: Bool    -- ^ if needed to wrap, whether text disappear or use multi lines row (unimplemented)
     }
 
+-- | Create a new column setting the right default parameters
 columnNew :: Int -> String -> Column
-columnNew n name = Column n name JustifyLeft False
+columnNew n name = Column
+    { columnSize    = n
+    , columnName    = name
+    , columnJustify = JustifyLeft
+    , columnWrap    = False
+    }
 
+-- | Table widget
 data Table = Table
     { tColumns     :: [Column]
     , rowSeparator :: String
     }
 
+-- | Create a new table
 tableCreate :: [Column] -> Table
 tableCreate cols = Table { tColumns = cols, rowSeparator = "" }
 
+-- | Show the table headers
 tableHeaders :: TerminalDisplay -> Table -> IO ()
 tableHeaders td t =
     tableAppend td t $ map columnName $ tColumns t
 
+-- | Append a row to the table.
+--
+-- if the number of elements is greater than the amount of
+-- column the table has been configured with, the extra
+-- elements are dropped.
 tableAppend :: TerminalDisplay -> Table -> [String] -> IO ()
 tableAppend td (Table cols rowSep) l = do
     let disp = case compare (length l) (length cols) of

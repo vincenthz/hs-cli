@@ -1,9 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE Rank2Types #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeFamilies #-}
 -- |
 -- Module      : Console.Options
 -- License     : BSD-style
@@ -42,6 +36,12 @@
 -- >        putStrLn $ "using flag A : " ++ show (toParam flagA)
 -- >        putStrLn $ "args: " ++ show (toParam allArgs)
 --
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
 module Console.Options
     (
     -- * Running
@@ -130,6 +130,7 @@ data FlagParser a =
       FlagRequired (ValueParser a)   -- ^ flag value parser with a required parameter.
     | FlagOptional a (ValueParser a) -- ^ Optional flag value parser: Default value if not present to a
 
+-- | A parser for a value. In case parsing failed Left should be returned.
 type ValueParser a = String -> Either String a
 
 -- | return value of the option parser. only needed when using 'parseOptions' directly
@@ -164,7 +165,7 @@ defaultMainWith dsl args = do
 parseOptions :: OptionDesc r () -> [String] -> (ProgramDesc r, OptionRes r)
 parseOptions dsl args =
     let descState = gatherDesc dsl
-     in (descState, runOptions (stMeta descState) (stCT descState) args)
+     in (descState, runOptions (stCT descState) args)
 
 --helpSubcommand :: [String] -> IO ()
 
@@ -205,11 +206,10 @@ help pmeta (Command hier _ commandOpts _) = mapM_ putStrLn . lines $ snd $ runWr
       where
         ff = flagFragments fd
 
-runOptions :: ProgramMeta
-           -> Command r -- commands
+runOptions :: Command r -- commands
            -> [String] -- arguments
            -> OptionRes r
-runOptions pmeta ct allArgs
+runOptions ct allArgs
     | "--help" `elem` allArgs = OptionHelp
     | "-h" `elem` allArgs     = OptionHelp
     | otherwise               = go [] ct allArgs
@@ -411,5 +411,5 @@ remainingArguments name = do
 
 -- | give the ability to set options that are conflicting with each other
 -- if option a is given with option b then an conflicting error happens
-conflict :: Flag a -> Flag b -> OptionDesc r ()
-conflict = undefined
+-- conflict :: Flag a -> Flag b -> OptionDesc r ()
+-- conflict = undefined

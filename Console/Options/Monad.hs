@@ -1,3 +1,10 @@
+-- |
+-- Module      : Console.Options.Monad
+-- License     : BSD-style
+-- Maintainer  : Vincent Hanquez <vincent@snarc.org>
+-- Stability   : experimental
+-- Portability : Good
+--
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types #-}
 module Console.Options.Monad
@@ -17,8 +24,7 @@ import           Control.Monad.State
 import           Control.Monad.Identity
 import           System.Exit
 
--- the current state of the program description
--- as the monad unfold ..
+-- | Ongoing State of the program description, as filled by monadic action
 data ProgramDesc r = ProgramDesc
     { stMeta        :: ProgramMeta
     , stCT          :: Command r     -- the command with the return type of actions
@@ -26,11 +32,12 @@ data ProgramDesc r = ProgramDesc
     , stNextIndex   :: !UnnamedIndex -- next index for unnamed argument
     }
 
+-- | Program meta information
 data ProgramMeta = ProgramMeta
-    { programMetaName        :: Maybe String
-    , programMetaDescription :: Maybe String
-    , programMetaVersion     :: Maybe String
-    , programMetaHelp        :: [String]
+    { programMetaName        :: Maybe String -- ^ Program name (usually name of the executable)
+    , programMetaDescription :: Maybe String -- ^ Program long description
+    , programMetaVersion     :: Maybe String -- ^ Program version
+    , programMetaHelp        :: [String]     -- ^ Flag that triggers Help.
     }
 
 programMetaDefault :: ProgramMeta
@@ -40,6 +47,7 @@ programMetaDefault = ProgramMeta Nothing Nothing Nothing ["-h", "--help"]
 newtype OptionDesc r a = OptionDesc { runOptionDesc :: StateT (ProgramDesc r) Identity a }
     deriving (Functor,Applicative,Monad,MonadState (ProgramDesc r))
 
+-- | Run option description
 gatherDesc :: OptionDesc r a -> ProgramDesc r
 gatherDesc dsl = runIdentity $ execStateT (runOptionDesc dsl) initialProgramDesc
 
@@ -60,6 +68,7 @@ getNextID = do
     modify $ \st -> st { stNextID = nidGen }
     return nid
 
+-- | Return the next unique position argument ID
 getNextIndex :: OptionDesc r UnnamedIndex
 getNextIndex = do
     idx <- stNextIndex <$> get

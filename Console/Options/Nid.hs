@@ -1,3 +1,12 @@
+-- |
+-- Module      : Console.Options.Nid
+-- License     : BSD-style
+-- Maintainer  : Vincent Hanquez <vincent@snarc.org>
+-- Stability   : experimental
+-- Portability : Good
+--
+-- Somewhat similar in functionality to Data.Unique.
+-- create Nids for parameter identification purpose.
 module Console.Options.Nid
     ( Nid
     , NidGenerator

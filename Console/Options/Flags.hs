@@ -1,3 +1,12 @@
+-- |
+-- Module      : Console.Options.Flags
+-- License     : BSD-style
+-- Maintainer  : Vincent Hanquez <vincent@snarc.org>
+-- Stability   : experimental
+-- Portability : Good
+--
+-- Simple flag parsers
+--
 module Console.Options.Flags
     ( parseFlags
     , FlagDesc(..)
@@ -17,7 +26,9 @@ import Console.Options.Nid
 import Data.List
 import Data.Monoid
 
-data FlagArgValidation = FlagArgValid | FlagArgInvalid String
+-- | Result of validation of flag value.
+data FlagArgValidation = FlagArgValid          -- ^ Validation success
+                       | FlagArgInvalid String -- ^ Validation failed with reason
 
 -- | How to parse a specific flag
 data FlagDesc = FlagDesc
@@ -28,7 +39,11 @@ data FlagDesc = FlagDesc
     , flagArity         :: Int
     }
 
--- | Fragment of flag definition
+-- | Fragment of flag definition.
+--
+-- Use the monoid approach to concat flags together
+-- e.g.
+-- > FlagShort 'o' <> FlagLong "option"
 data FlagFrag =
       FlagShort       Char   -- ^ short option e.g. '-a'
     | FlagLong        String -- ^ long option e.g. "--aaaa"
@@ -37,6 +52,7 @@ data FlagFrag =
     | FlagMany        [FlagFrag]
     deriving (Show,Eq)
 
+-- | Flatten fragments list into a final product to consume
 data FlagFragments = FlagFragments
     { flagShort         :: Maybe Char             -- ^ short flag parser 'o'
     , flagLong          :: Maybe String           -- ^ long flag "flag"
@@ -44,6 +60,7 @@ data FlagFragments = FlagFragments
     --, flagDefault       :: Maybe String           -- ^ Has a default
     }
 
+-- | Produce the result structure after processing all the fragment list.
 flattenFragments :: FlagFrag -> FlagFragments
 flattenFragments frags =
     foldl' flat startVal $ case frags of
@@ -77,10 +94,13 @@ data ParseState a = ParseState [Flag]      -- Args : in reverse order
                                [String]    -- Unparsed: in reverse order
                                [FlagError] -- errors: in reverse order
 
+-- | Flag return value after parsing made of a unique number and an optional value
 type Flag = (Nid, Maybe String)
 
+-- | Flag error with the description of the flag, the index of the element causing the error, and the error itself.
 data FlagError = FlagError FlagDesc Int String
 
+-- | Parse flags
 parseFlags :: [FlagDesc]
            -> [String]
            -> ([Flag], [String], [FlagError])

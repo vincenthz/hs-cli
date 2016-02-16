@@ -1,3 +1,10 @@
+-- |
+-- Module      : Console.Options.Types
+-- License     : BSD-style
+-- Maintainer  : Vincent Hanquez <vincent@snarc.org>
+-- Stability   : experimental
+-- Portability : Good
+--
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE GADTs #-}
@@ -18,7 +25,6 @@ module Console.Options.Types
     , ArgRemaining(..)
     , Params(..)
     , Param(..)
-    , getParams
     ) where
 
 import           Console.Options.Flags (FlagDesc)
@@ -60,10 +66,10 @@ data Arg a where
 data ArgRemaining a where
     ArgsRemaining :: ArgRemaining [String]
 
+-- | Positional argument index
 type UnnamedIndex = Int
 
--- A command that is composed of a hierarchy
---
+-- | A command that is composed of a hierarchy
 data Command r = Command
     { getCommandHier        :: CommandHier r
     , getCommandDescription :: String
@@ -78,7 +84,7 @@ data CommandHier r =
 
 -- | A dictionary of parsed flags and arguments
 data Params = Params
-    { paramsFlags         :: [(Nid, Maybe String)]
+    { paramsFlags         :: [(Nid, Maybe String)] -- ^ return all the flags and their unique identifier. internal only
     , paramsPinnedArgs    :: [String]
     , paramsRemainingArgs :: [String]
     }
@@ -86,6 +92,7 @@ data Params = Params
 -- | Represent a program to run
 type Action r = (forall a p . Param p => p a -> Ret p a) -> r
 
+-- | Wrapper for Action or no Action.
 data ActionWrapper r = 
       ActionWrapped (Action r)
     | NoActionWrapped
