@@ -46,3 +46,8 @@ main = defaultMain $ do
         putStrLn $ "using flag A : " ++ show (toParam flagA)
         putStrLn $ "args: " ++ show (toParam allArgs)
 ```
+
+License
+-------
+
+The source code of cli is available under the [BSD 3-Clause license](https://opensource.org/licenses/BSD-3-Clause), see `LICENSE` for more information.
