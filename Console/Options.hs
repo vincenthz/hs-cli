@@ -284,6 +284,8 @@ indent :: Int -> String -> String
 indent n s = replicate n ' ' ++ s
 
 -- | Set the program name
+--
+-- default is the result of base's `getProgName`
 programName :: String -> OptionDesc r ()
 programName s = modify $ \st -> st { stMeta = (stMeta st) { programMetaName = Just s } }
 
