@@ -66,6 +66,7 @@ module Console.Options
     , description
     , Action
     -- * Arguments
+    , ValueParser
     , FlagParser(..)
     , Flag
     , FlagLevel
