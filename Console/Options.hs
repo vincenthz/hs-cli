@@ -151,7 +151,8 @@ defaultMain dsl = getArgs >>= defaultMainWith dsl
 -- | same as 'defaultMain', but with the argument
 defaultMainWith :: OptionDesc (IO ()) () -> [String] -> IO ()
 defaultMainWith dsl args = do
-    let (programDesc, res) = parseOptions dsl args
+    progrName <- getProgName
+    let (programDesc, res) = parseOptions (programName progrName >> dsl) args
      in case res of
         OptionError s          -> putStrLn s >> exitFailure
         OptionHelp             -> help (stMeta programDesc) (stCT programDesc) >> exitSuccess
