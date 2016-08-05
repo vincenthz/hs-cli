@@ -152,7 +152,8 @@ defaultMain dsl = getArgs >>= defaultMainWith dsl
 -- | same as 'defaultMain', but with the argument
 defaultMainWith :: OptionDesc (IO ()) () -> [String] -> IO ()
 defaultMainWith dsl args = do
-    let (programDesc, res) = parseOptions dsl args
+    progrName <- getProgName
+    let (programDesc, res) = parseOptions (programName progrName >> dsl) args
      in case res of
         OptionError s          -> putStrLn s >> exitFailure
         OptionHelp             -> help (stMeta programDesc) (stCT programDesc) >> exitSuccess
@@ -284,6 +285,8 @@ indent :: Int -> String -> String
 indent n s = replicate n ' ' ++ s
 
 -- | Set the program name
+--
+-- default is the result of base's `getProgName`
 programName :: String -> OptionDesc r ()
 programName s = modify $ \st -> st { stMeta = (stMeta st) { programMetaName = Just s } }
 
