@@ -96,7 +96,7 @@ displayTextColor term color msg = do
 displayLn :: TerminalDisplay -> Color -> String -> IO ()
 displayLn disp color msg = displayTextColor disp color (msg ++ "\n")
 
--- | Progress bar widget
+-- | A progress bar widget created and used within the `progress` function.
 data ProgressBar = ProgressBar TerminalDisplay ProgressBackend (MVar ProgressState)
 
 type ProgressBackend = String -> IO ()
@@ -120,11 +120,42 @@ initProgressState maxItems = ProgressState
     , pgCurrent = 0
     }
 
--- | Create a new progress bar context
-progress :: TerminalDisplay
-         -> Int
-         -> (ProgressBar -> IO a)
-         -> IO a
+-- | Create a new progress bar context from a terminal display, a number of
+-- items, and a progress update function.
+--
+-- The progress bar update function should perform the desired actions on each
+-- of the items, and call `progressTick` whenever an item is fully processed.
+--
+-- Each time the given update function calls progressTick the progress bar
+-- fills by one item until the given number of items is matched. Once the bar
+-- is filled it will not fill any further even if progressTick is called
+-- again.
+--
+-- The progress bar will disappear when the given update function completes
+-- running, even if the progress bar is not yet entirely filled.
+--
+-- For example, the following function will create a progress bar of 100
+-- items, and complete one of the items every tenth of a second. Once all of
+-- the items are completed the progress bar is removed and a completion String
+-- is returned.
+--
+-- @
+-- runProgressBar :: IO String
+-- runProgressBar = do
+--     terminalDisplay <- displayInit
+--     progress terminalDisplay 100 (progressFunction 100)
+--   where
+--     progressFunction :: Int -> ProgressBar -> IO String
+--     progressFunction 0 _   = return "Completed!"
+--     progressFunction n bar = do
+--       threadDelay 100000
+--       progressTick bar
+--       progressFunction (n - 1) bar
+-- @
+progress :: TerminalDisplay       -- ^ The terminal display to display the progress bar on.
+         -> Int                   -- ^ The number of items the progress bar represents.
+         -> (ProgressBar -> IO a) -- ^ The progression bar update function.
+         -> IO a                  -- ^ The results of the progress bar update function.
 progress tdisp@(TerminalDisplay cf term) numberItems f = do
     let b = backend (getCapability term cursorDown)
                     (getCapability term carriageReturn)
@@ -184,7 +215,18 @@ progressStart pbar = do
     showBar pbar
     return ()
 
--- | Tick an element on the progress bar
+-- | Ticks an element on the given progress bar. Should be used within a
+-- progress bar update function that is passed into `progress`.
+--
+-- @
+-- progressFunction :: ProgressBar -> IO String
+-- progressFunction bar = do
+--   threadDelay 100000
+--   progressTick bar
+--   threadDelay 200000
+--   progressTick bar
+--   return "Completed!"
+-- @
 progressTick :: ProgressBar -> IO ()
 progressTick pbar@(ProgressBar _ _ st) = do
     modifyMVar_ st $ \pgs -> return $ pgs { pgCurrent = min (pgMax pgs) (pgCurrent pgs + 1) }
