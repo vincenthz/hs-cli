@@ -29,6 +29,7 @@ module Console.Options.Types
 
 import           Console.Options.Flags (FlagDesc)
 import           Console.Options.Nid
+import           Data.Maybe
 
 -- | A unnamed argument
 data Argument =
@@ -116,7 +117,7 @@ arg :: required on command line
 instance Param Flag where
     type Ret Flag a = Bool
     getParams (Params flagArgs _ _) (Flag nid) =
-        maybe False (const True) $ lookup nid flagArgs
+        isJust $ lookup nid flagArgs
 instance Param FlagLevel where
     type Ret FlagLevel a = Int
     getParams (Params flagArgs _ _) (FlagLevel nid) =
