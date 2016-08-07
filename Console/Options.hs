@@ -36,7 +36,6 @@
 -- >        putStrLn $ "using flag A : " ++ show (toParam flagA)
 -- >        putStrLn $ "args: " ++ show (toParam allArgs)
 --
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}

@@ -366,7 +366,7 @@ tableAppend td (Table cols rowSep) l = do
     mapM_ printColRow $ intersperse Nothing $ map Just disp
   where
     printColRow Nothing =
-        display td [T $ rowSep]
+        display td [T rowSep]
     printColRow (Just (c, fieldElement)) = do
         let oe = case columnJustify c of
                    JustifyLeft  -> RightT (columnSize c) fieldElement
