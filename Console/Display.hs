@@ -49,8 +49,10 @@ data OutputElem =
       Bg Color
     | Fg Color
     | T  String
-    | LeftT Int String
-    | RightT Int String
+    | LeftT Int String      -- ^ Left-aligned text
+    | RightT Int String     -- ^ Right-aligned text
+    | CenterT Int String    -- ^ Centered text
+    | JustifiedT Int String -- ^ Justified text
     | NA
     deriving (Show,Eq)
 
@@ -83,8 +85,10 @@ renderOutput (TerminalDisplay _ term) to = mconcat $ map toTermOutput to
         toTermOutput (Fg c) = wF c
         toTermOutput (Bg c) = wB c
         toTermOutput (T t)  = termText t
-        toTermOutput (LeftT sz t)  = termText (t ++ replicate (sz - length t) ' ')
-        toTermOutput (RightT sz t)  = termText (replicate (sz - length t) ' ' ++ t)
+        toTermOutput (LeftT size t)      = termText $ justify JustifyLeft      size t
+        toTermOutput (RightT size t)     = termText $ justify JustifyRight     size t
+        toTermOutput (CenterT size t)    = termText $ justify JustifyCenter    size t
+        toTermOutput (JustifiedT size t) = termText $ justify JustifyJustified size t
         toTermOutput NA     = rD
 
 -- | A simple utility that display a @msg@ in @color@
@@ -256,20 +260,84 @@ summarySet :: Summary -> [OutputElem] -> IO ()
 summarySet (Summary backend) output = do
     backend output
 
--- | Justify position
-data Justify = JustifyLeft | JustifyRight
+-- | A justification of text.
+data Justify = JustifyLeft       -- ^ Left align text
+             | JustifyRight      -- ^ Right align text
+             | JustifyCenter     -- ^ Center text
+             | JustifyJustified  -- ^ Text fills the whole line width
 
--- | box a string to a specific size, choosing the justification
+-- | Boxes a string to a given size using the given justification.
+--
+-- If the size of the given string is greater than or equal to the given boxing
+-- size, then the original string is returned.
+--
+-- ==== __Examples__
+--
+-- Basic usage:
+--
+-- >>> justify JustifyRight 35 "Lorem ipsum dolor sit amet"
+-- "Lorem ipsum dolor sit amet         "
+--
+-- >>> justify JustifyLeft 35 "Lorem ipsum dolor sit amet"
+-- "         Lorem ipsum dolor sit amet"
+--
+-- >>> justify JustifyCenter 35 "Lorem ipsum dolor sit amet"
+-- "    Lorem ipsum dolor sit amet     "
+--
+-- >>> justify JustifyJustified 35 "Lorem ipsum dolor sit amet"
+-- "Lorem    ipsum   dolor   sit   amet"
+--
+-- Apply a justified justification to a one word string, resulting in a string
+-- of the given length with the word at the left followed by the remaining
+-- space.
+--
+-- >>> justify JustifyJustified 10 "Hello."
+-- "Hello.    "
+--
+-- Attempt to box a string that is larger than the given box, yielding the
+-- original string.
+--
+-- >>> justify JustifyRight 5 "Hello, World!"
+-- "Hello, World!"
 justify :: Justify -> Int -> String -> String
-justify dir sz s
-    | sz <= szS = s
-    | otherwise =
-        let pad = replicate (sz - szS) ' '
-         in case dir of
-                JustifyLeft  -> pad ++ s
-                JustifyRight -> s ++ pad
+justify justification size string
+    | size <= stringSize = string
+    | otherwise = case justification of
+        JustifyLeft      -> padding ++ string
+        JustifyRight     -> string ++ padding
+        JustifyCenter    -> if even sizeDifference
+          then halfPadding ++ string ++       halfPadding
+          else halfPadding ++ string ++ ' ' : halfPadding
+        JustifyJustified -> justifyJustified size string
   where
-    szS = length s
+    padding        = replicate sizeDifference ' '
+    halfPadding    = replicate (sizeDifference `div` 2) ' '
+    sizeDifference = size - stringSize
+    stringSize     = length string
+
+-- | Justifies the given string so that it takes up the space of the entire
+-- given box size.
+justifyJustified :: Int -> String -> String
+justifyJustified size string
+    | numberOfWords == 1 = string ++ replicate lengthDifference ' '
+    | otherwise          = justifiedString
+  where
+    justifiedString  = intercalate spaces $ insertExcessSpaces excessChars stringWords
+    spaces           = replicate spacing ' '
+    excessChars      = lengthDifference `mod` (numberOfWords - 1)
+    spacing          = lengthDifference `div` (numberOfWords - 1)
+    lengthDifference = size - wordsLength
+    wordsLength      = sum $ map length stringWords
+    numberOfWords    = length stringWords
+    stringWords      = words string
+
+-- | Inserts excess spaces between words for the process of justifying a
+-- string.
+insertExcessSpaces :: Int -> [String] -> [String]
+insertExcessSpaces _ []     = []
+insertExcessSpaces 0 w      = w
+insertExcessSpaces n (x:xs) = (x ++ " ") : insertExcessSpaces (n - 1) xs
+
 {-
 data Attr = Attr
     { attrHasSize    :: Maybe Int
@@ -369,6 +437,8 @@ tableAppend td (Table cols rowSep) l = do
         display td [T rowSep]
     printColRow (Just (c, fieldElement)) = do
         let oe = case columnJustify c of
-                   JustifyLeft  -> RightT (columnSize c) fieldElement
-                   JustifyRight -> LeftT (columnSize c) fieldElement
+                   JustifyLeft      -> RightT     (columnSize c) fieldElement
+                   JustifyRight     -> LeftT      (columnSize c) fieldElement
+                   JustifyCenter    -> CenterT    (columnSize c) fieldElement
+                   JustifyJustified -> JustifiedT (columnSize c) fieldElement
         display td [oe,T "\n"]
