@@ -73,6 +73,8 @@ flattenFragments frags =
     flat ff  (FlagDescription f) = ff { flagDescription = Just f }
     flat acc (FlagMany l)        = foldl' flat acc l
 
+instance Semigroup FlagFrag where
+    (<>) = mappend
 instance Monoid FlagFrag where
     mempty                              = FlagMany []
     mappend (FlagMany l1) (FlagMany l2) = FlagMany (l1 ++ l2)
