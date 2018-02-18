@@ -26,6 +26,8 @@ import Console.Options.Nid
 import Data.List
 import Data.Monoid
 
+import Basement.Compat.Semigroup
+
 -- | Result of validation of flag value.
 data FlagArgValidation = FlagArgValid          -- ^ Validation success
                        | FlagArgInvalid String -- ^ Validation failed with reason
@@ -73,6 +75,7 @@ flattenFragments frags =
     flat ff  (FlagDescription f) = ff { flagDescription = Just f }
     flat acc (FlagMany l)        = foldl' flat acc l
 
+instance Semigroup FlagFrag
 instance Monoid FlagFrag where
     mempty                              = FlagMany []
     mappend (FlagMany l1) (FlagMany l2) = FlagMany (l1 ++ l2)

@@ -1,63 +1,55 @@
-Name:                cli
-Version:             0.1.2
-Synopsis:            Command Line Interface
-Description: 
-    All you need for interacting with users at the Console level
-    .
-    * Display routines, formatting, progress bars
-    .
-    * Options parsing
-    .
-License:             BSD3
-License-file:        LICENSE
-Copyright:           Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
-Author:              Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
-Maintainer:          vincent@snarc.org
-Category:            cli
-Stability:           experimental
-Build-Type:          Simple
-Homepage:            https://github.com/vincenthz/hs-cli
-Bug-Reports:         https://github.com/vincenthz/hs-cli/issues
-Cabal-Version:       >=1.10
-extra-source-files:  README.md
+-- This file has been generated from package.yaml by hpack version 0.20.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 2fffb1ced379e12652a85a0ca0bdbfd66d1ff88c3d0aaa7c4a0e5657f1c1c2d2
 
-source-repository head
-  type: git
-  location: https://github.com/vincenthz/hs-cli
+name:           cli
+version:        0.2.0
+category:       cli
+homepage:       https://github.com/vincenthz/hs-cli#readme
+author:         Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
+maintainer:     vincent@snarc.org
+copyright:      Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
 
-Library
-  Exposed-modules:   Console.Display
-                   , Console.Options
-  Other-modules:     Console.Options.Nid
-                   , Console.Options.Flags
-                   , Console.Options.Monad
-                   , Console.Options.Types
-                   , Console.Options.Utils
-  Build-depends:     base >= 4 && < 5
-                   , transformers
-                   , mtl
-                   , terminfo
-  ghc-options:       -Wall -fwarn-tabs -fno-warn-unused-imports
-  default-language:  Haskell2010
+extra-source-files:
+    LICENSE
+    README.md
 
+library
+  hs-source-dirs:
+      ./.
+  default-extensions: TypeFamilies DataKinds OverloadedStrings
+  build-depends:
+      base
+    , basement
+    , foundation
+  exposed-modules:
+      Console.Display
+      Console.Options
+  other-modules:
+      Console.Options.Nid
+      Console.Options.Flags
+      Console.Options.Monad
+      Console.Options.Types
+      Console.Options.Utils
+  default-language: Haskell2010
 
---Executable           cli
---  Main-Is:           cli.hs
--- mtl ghc-options:       -Wall -fno-warn-missing-signatures
---  Hs-Source-Dirs:    .
---  Build-depends:     base >= 4 && < 5
---  default-language:  Haskell2010
-
-Test-Suite test-cli
-  type:              exitcode-stdio-1.0
-  hs-source-dirs:    tests
-  Main-is:           Cli.hs
-  default-language:  Haskell2010
-  Build-Depends:     base >= 3 && < 5
-                   , directory
-                   , transformers
-                   , tasty
-                   , tasty-quickcheck
-                   , QuickCheck
-                   , cli
-  ghc-options:       -Wall -fno-warn-orphans -fno-warn-missing-signatures -fwarn-tabs -fno-warn-unused-imports
+executable example
+  main-is: Simple.hs
+  hs-source-dirs:
+      examples/
+  default-extensions: TypeFamilies DataKinds OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base
+    , basement
+    , cli
+    , foundation
+  other-modules:
+      Paths_cli
+  default-language: Haskell2010
