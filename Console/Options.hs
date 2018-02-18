@@ -80,7 +80,7 @@ module Console.Options
 
 import Foundation (toList, toCount, fromList)
 
-import           Console.Options.Flags hiding (Flag, flagArg)
+import           Console.Options.Flags hiding (Flag)
 import qualified Console.Options.Flags as F
 import           Console.Options.Nid
 import           Console.Options.Utils
@@ -93,6 +93,7 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 
 import           Data.List
+import           Data.Maybe (fromMaybe)
 import           Data.Version
 import           Data.Functor.Identity
 
@@ -172,7 +173,7 @@ parseOptions dsl args =
 
 help :: ProgramMeta -> Command (IO ()) -> IO ()
 help pmeta (Command hier _ commandOpts _) = do
-    tell (maybe "<program>" id (programMetaName pmeta) ++ " version " ++ maybe "<undefined>" id (programMetaVersion pmeta) ++ "\n")
+    tell (fromMaybe "<program>" (programMetaName pmeta) ++ " version " ++ fromMaybe "<undefined>" (programMetaVersion pmeta) ++ "\n")
     tell "\n"
     maybe (return ()) (\d -> tell d >> tell "\n\n") (programMetaDescription pmeta)
     tell "Options:\n"
@@ -185,19 +186,23 @@ help pmeta (Command hier _ commandOpts _) = do
             let cmdLength = maximum (map (length . fst) subs) + 2
             forM_ subs $ \(n, c) -> tell $ indent 2 (toList (justify JustifyRight (toCount cmdLength) (fromList n)) ++ getCommandDescription c ++ "\n")
             tell "\n"
-            mapM_ (printSub 0) subs
+            mapM_ (printSub 2) subs
         CommandLeaf _    ->
             return ()
   where
     tell = putStr
     printSub iLevel (name, cmdOpt) = do
-        tell ("\n" ++ name ++ " options:\n\n")
+        tell $ "\nCommand `" ++ name ++ "':\n\n"
+        tell $ indent iLevel "Options:\n\n"
         mapM_ (tell . printOpt iLevel) (getCommandOptions cmdOpt)
         case getCommandHier cmdOpt of
-            CommandTree _ -> do
-                return ()
-            CommandLeaf _ -> do
-                return ()
+            CommandTree subs -> do
+                tell $ indent iLevel "Commands:\n"
+                let cmdLength = maximum (map (length . fst) subs) + 2 + iLevel
+                forM_ subs $ \(n, c) -> tell $ indent (iLevel + 2) (toList (justify JustifyRight (toCount cmdLength) (fromList n)) ++ getCommandDescription c ++ "\n")
+                tell "\n"
+                mapM_ (printSub (iLevel + 2)) subs
+            CommandLeaf _ -> pure ()
         --tell . indent 2 ""
 
     printOpt iLevel fd =
