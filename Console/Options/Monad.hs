@@ -14,15 +14,17 @@ module Console.Options.Monad
     , gatherDesc
     , getNextID
     , getNextIndex
+    , modify
     ) where
 
 import           Control.Applicative
 import           Console.Options.Nid
 import           Console.Options.Types
 import           Console.Options.Utils
-import           Control.Monad.State
-import           Control.Monad.Identity
 import           System.Exit
+
+import Foundation.Monad
+import Foundation.Monad.State
 
 -- | Ongoing State of the program description, as filled by monadic action
 data ProgramDesc r = ProgramDesc
@@ -45,11 +47,14 @@ programMetaDefault = ProgramMeta Nothing Nothing Nothing ["-h", "--help"]
 
 -- | Option description Monad
 newtype OptionDesc r a = OptionDesc { runOptionDesc :: StateT (ProgramDesc r) Identity a }
-    deriving (Functor,Applicative,Monad,MonadState (ProgramDesc r))
+    deriving (Functor,Applicative,Monad)
+instance MonadState (OptionDesc r) where
+    type State (OptionDesc r) = ProgramDesc r
+    withState f = OptionDesc $ withState f
 
 -- | Run option description
 gatherDesc :: OptionDesc r a -> ProgramDesc r
-gatherDesc dsl = runIdentity $ execStateT (runOptionDesc dsl) initialProgramDesc
+gatherDesc dsl = snd $ runIdentity $ runStateT (runOptionDesc dsl) initialProgramDesc
 
 initialProgramDesc :: ProgramDesc r
 initialProgramDesc = ProgramDesc { stMeta        = programMetaDefault
@@ -65,12 +70,15 @@ initialProgramDesc = ProgramDesc { stMeta        = programMetaDefault
 getNextID :: OptionDesc r Nid
 getNextID = do
     (nid, nidGen) <- nidNext . stNextID <$> get
-    modify $ \st -> st { stNextID = nidGen }
+    withState $ \st -> ((), st { stNextID = nidGen })
     return nid
+
+modify :: (ProgramDesc r -> ProgramDesc r) -> OptionDesc r ()
+modify f = withState $ \st -> ((), f st)
 
 -- | Return the next unique position argument ID
 getNextIndex :: OptionDesc r UnnamedIndex
 getNextIndex = do
     idx <- stNextIndex <$> get
-    modify $ \st -> st { stNextIndex = idx + 1 }
+    withState $ \st -> ((), st { stNextIndex = idx + 1 })
     return idx

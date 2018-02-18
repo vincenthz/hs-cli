@@ -91,7 +91,6 @@ import           Console.Display (justify, Justify(..))
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Control.Monad.State
 import           Control.Monad.Writer
 
 import           Data.List
