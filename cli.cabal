@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8f257f8a56ddb697bf00708c36dfc75f8a56d81ad06c9210cf3718af15d11450
+-- hash: cf121ac2c7b181c0a747d4e14412ca9616afb0619f50f40245ac60aebdb32029
 
 name:           cli
 version:        0.2.0
@@ -29,7 +29,6 @@ library
     , basement
     , foundation
     , mtl
-    , terminfo
     , transformers
   exposed-modules:
       Console.Display
@@ -43,7 +42,7 @@ library
   default-language: Haskell2010
 
 executable example
-  main-is: Main.hs
+  main-is: Simple.hs
   hs-source-dirs:
       examples/
   default-extensions: TypeFamilies DataKinds OverloadedStrings
@@ -54,9 +53,7 @@ executable example
     , cli
     , foundation
     , mtl
-    , terminfo
     , transformers
   other-modules:
-      Simple
       Paths_cli
   default-language: Haskell2010

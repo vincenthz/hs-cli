@@ -78,6 +78,8 @@ module Console.Options
     , getParams
     ) where
 
+import Foundation (toList, toCount, fromList)
+
 import           Console.Options.Flags hiding (Flag, flagArg)
 import qualified Console.Options.Flags as F
 import           Console.Options.Nid
@@ -183,7 +185,7 @@ help pmeta (Command hier _ commandOpts _) = mapM_ putStrLn . lines $ snd $ runWr
             tell "\n"
             tell "Commands:\n"
             let cmdLength = maximum (map (length . fst) subs) + 2
-            mapM_ (\(n, c) -> tell $ indent 2 (justify JustifyRight cmdLength n ++ getCommandDescription c ++ "\n")) subs
+            forM_ subs $ \(n, c) -> tell $ indent 2 (toList (justify JustifyRight (toCount cmdLength) (fromList n)) ++ getCommandDescription c ++ "\n")
             tell "\n"
             mapM_ (printSub 0) subs
         CommandLeaf _    ->

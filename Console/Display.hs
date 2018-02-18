@@ -7,6 +7,9 @@
 --
 -- Displaying utilities
 --
+
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Console.Display
     ( TerminalDisplay
     -- * Basic
@@ -23,7 +26,7 @@ module Console.Display
     , summary
     , summarySet
     -- * Attributes
-    , Color(..)
+    , ColorComponent
     , OutputElem(..)
     , termText
     , justify
@@ -37,68 +40,88 @@ module Console.Display
     , tableAppend
     ) where
 
+import Basement.Terminal
+import Basement.Terminal.ANSI
+import Basement.Types.OffsetSize
+
+import Foundation
+import Foundation.Numerical
+import Foundation.IO
+import Foundation.IO.Terminal
+import Foundation.String
+import Foundation.Collection
+
+import           System.IO (Handle, hSetBuffering, BufferMode(NoBuffering))
+
 import           Control.Applicative
-import           Control.Monad
+import           Control.Monad (when)
 import           Control.Concurrent.MVar
-import           System.Console.Terminfo
-import           System.IO
-import           Data.List
 
 -- | Element to output text and attributes to the display
 data OutputElem =
-      Bg Color
-    | Fg Color
+      Bg ColorComponent
+    | Fg ColorComponent
     | T  String
-    | LeftT Int String      -- ^ Left-aligned text
-    | RightT Int String     -- ^ Right-aligned text
-    | CenterT Int String    -- ^ Centered text
-    | JustifiedT Int String -- ^ Justified text
+    | LeftT (CountOf Char) String      -- ^ Left-aligned text
+    | RightT (CountOf Char) String     -- ^ Right-aligned text
+    | CenterT (CountOf Char) String    -- ^ Centered text
+    | JustifiedT (CountOf Char) String -- ^ Justified text
     | NA
     deriving (Show,Eq)
 
 -- | Terminal display state
-data TerminalDisplay = TerminalDisplay (MVar Bool) Terminal
+data TerminalDisplay = TerminalDisplay (MVar Bool) Handle
+
+hPutStr :: Handle -> String -> IO ()
+hPutStr h = hPut h . toBytes UTF8
+
+termText :: String -> String
+termText = id
 
 -- | Create a new display
 displayInit :: IO TerminalDisplay
 displayInit = do
+    initialize
     hSetBuffering stdout NoBuffering
     cf <- newMVar False
-    TerminalDisplay cf <$> setupTermFromEnv
+    pure $ TerminalDisplay cf stdout
 
 -- | Display
 display :: TerminalDisplay -> [OutputElem] -> IO ()
 display tdisp@(TerminalDisplay clearFirst term) oelems = do
     cf <- modifyMVar clearFirst $ \cf -> return (False, cf)
-    when cf $ runTermOutput term (maybe mempty id clearLineFirst)
-    runTermOutput term $ renderOutput tdisp oelems
+    when cf $ hPutStr term eraseLineFromCursor
+    hPutStr term $ renderOutput tdisp oelems
   where
-        clearLineFirst = getCapability term clearEOL
+        clearLineFirst = eraseLineFromCursor
 
-renderOutput :: TerminalDisplay -> [OutputElem] -> TermOutput
-renderOutput (TerminalDisplay _ term) to = mconcat $ map toTermOutput to
+renderOutput :: TerminalDisplay -> [OutputElem] -> String
+renderOutput (TerminalDisplay _ term) to = mconcat $ fmap toString to
   where
-        wF = maybe (const mempty) id $ getCapability term setForegroundColor
-        wB = maybe (const mempty) id $ getCapability term setBackgroundColor
-        rD = maybe mempty         id $ getCapability term restoreDefaultColors
+        wF = flip sgrForeground False
+        wB = flip sgrBackground False
+        rD = sgrReset
 
-        toTermOutput (Fg c) = wF c
-        toTermOutput (Bg c) = wB c
-        toTermOutput (T t)  = termText t
-        toTermOutput (LeftT size t)      = termText $ justify JustifyLeft      size t
-        toTermOutput (RightT size t)     = termText $ justify JustifyRight     size t
-        toTermOutput (CenterT size t)    = termText $ justify JustifyCenter    size t
-        toTermOutput (JustifiedT size t) = termText $ justify JustifyJustified size t
-        toTermOutput NA     = rD
+        toString (Fg c) = wF c
+        toString (Bg c) = wB c
+        toString (T t)  = t
+        toString (LeftT size t)      = justify JustifyLeft      size t
+        toString (RightT size t)     = justify JustifyRight     size t
+        toString (CenterT size t)    = justify JustifyCenter    size t
+        toString (JustifiedT size t) = justify JustifyJustified size t
+        toString NA     = rD
 
 -- | A simple utility that display a @msg@ in @color@
-displayTextColor :: TerminalDisplay -> Color -> String -> IO ()
-displayTextColor term color msg = do
+displayTextColor :: TerminalDisplay -> ColorComponent -> String -> IO ()
+displayTextColor term color msg =
     display term [Fg color, T msg]
 
 -- | A simple utility that display a @msg@ in @color@ and newline at the end.
-displayLn :: TerminalDisplay -> Color -> String -> IO ()
-displayLn disp color msg = displayTextColor disp color (msg ++ "\n")
+displayLn :: TerminalDisplay -> ColorComponent -> String -> IO ()
+displayLn disp color msg = displayTextColor disp color (msg <> "\n")
+
+white :: ColorComponent
+white = 7
 
 -- | A progress bar widget created and used within the `progress` function.
 data ProgressBar = ProgressBar TerminalDisplay ProgressBackend (MVar ProgressState)
@@ -161,25 +184,24 @@ progress :: TerminalDisplay       -- ^ The terminal display to display the progr
          -> (ProgressBar -> IO a) -- ^ The progression bar update function.
          -> IO a                  -- ^ The results of the progress bar update function.
 progress tdisp@(TerminalDisplay cf term) numberItems f = do
-    let b = backend (getCapability term cursorDown)
-                    (getCapability term carriageReturn)
-                    (getCapability term clearEOL)
+    let b = backend (Just cursorDown)
+                    (Just "\r")
+                    (Just eraseLineFromCursor)
     pbar <- ProgressBar tdisp b <$> newMVar (initProgressState numberItems)
 
     progressStart pbar
     a <- f pbar
-    displayLn tdisp White ""
+    displayLn tdisp white ""
     return a
   where
-    backend :: Maybe (Int -> TermOutput)
-            -> Maybe TermOutput
-            -> Maybe TermOutput
+    backend :: Maybe (Word64 -> String)
+            -> Maybe String
+            -> Maybe String
             -> ProgressBackend
     backend _ (Just goHome) (Just clearEol) = \msg -> do
-        runTermOutput term $ mconcat [clearEol, termText msg, goHome]
+        hPutStr term $ mconcat [clearEol, msg, goHome]
         modifyMVar_ cf $ return . const True
-    backend _ _ _ = \msg ->
-        displayLn tdisp White msg
+    backend _ _ _ = displayLn tdisp white
 
 showBar :: ProgressBar -> IO ()
 showBar (ProgressBar _ backend pgsVar) = do
@@ -189,26 +211,26 @@ showBar (ProgressBar _ backend pgsVar) = do
   where
     getBar (ProgressState lhs rhs maxItems current) =
             lhs `sep` bar `sep`
-            (show current ++ "/" ++ show maxItems) `sep`
+            (show current <> "/" <> show maxItems) `sep`
             rhs
       where
         sep s1 s2
             | null s1   = s2
             | null s2   = s1
-            | otherwise = s1 ++ " " ++ s2
+            | otherwise = s1 <> " " <> s2
 
         bar
-            | maxItems == current = "[" ++ replicate szMax fillingChar ++ "]"
-            | otherwise           = "[" ++ replicate filled fillingChar ++ ">" ++ replicate (unfilled-1) ' ' ++ "]"
+            | maxItems == current = "[" <> replicate (CountOf szMax) fillingChar <> "]"
+            | otherwise           = "[" <> replicate (CountOf filled) fillingChar <> ">" <> replicate unfilled' ' ' <> "]"
 
         fillingChar = '='
 
-        unfilled, filled :: Int
-        unfilled   = szMax - filled
-        filled     = floor numberChar
+        unfilled   = CountOf $ szMax - filled
+        unfilled'  = CountOf $ szMax - filled - 1
+        filled     = roundDown numberChar
 
         numberChar = fromIntegral szMax / currentProgress
-        szMax      = 40
+        szMax      = 40 :: Int
 
         currentProgress :: Double
         currentProgress = fromIntegral maxItems / fromIntegral current
@@ -240,25 +262,24 @@ progressTick pbar@(ProgressBar _ _ st) = do
 -- | Create a summary
 summary :: TerminalDisplay -> IO Summary
 summary tdisp@(TerminalDisplay cf term) = do
-    let b = backend (getCapability term cursorDown)
-                    (getCapability term carriageReturn)
-                    (getCapability term clearEOL)
+    let b = backend (Just cursorDown)
+                    (Just "\r")
+                    (Just eraseLineFromCursor)
     return $ Summary b
   where
-    backend :: Maybe (Int -> TermOutput)
-            -> Maybe TermOutput
-            -> Maybe TermOutput
+    backend :: Maybe (Word64 -> String)
+            -> Maybe String
+            -> Maybe String
             -> SummaryBackend
     backend _ (Just goHome) (Just clearEol) = \msg -> do
-        runTermOutput term $ mconcat [clearEol, renderOutput tdisp msg, goHome]
+        hPutStr term $ mconcat [clearEol, renderOutput tdisp msg, goHome]
         modifyMVar_ cf $ return . const True
     backend _ _ _ = \msg ->
-        runTermOutput term $ mconcat [renderOutput tdisp msg]
+        hPutStr term $ mconcat [renderOutput tdisp msg]
 
 -- | Set the summary
 summarySet :: Summary -> [OutputElem] -> IO ()
-summarySet (Summary backend) output = do
-    backend output
+summarySet (Summary backend) = backend
 
 -- | A justification of text.
 data Justify = JustifyLeft       -- ^ Left align text
@@ -299,44 +320,45 @@ data Justify = JustifyLeft       -- ^ Left align text
 --
 -- >>> justify JustifyRight 5 "Hello, World!"
 -- "Hello, World!"
-justify :: Justify -> Int -> String -> String
+justify :: Justify -> CountOf Char -> String -> String
 justify justification size string
     | size <= stringSize = string
     | otherwise = case justification of
-        JustifyLeft      -> padding ++ string
-        JustifyRight     -> string ++ padding
+        JustifyLeft      -> padding <> string
+        JustifyRight     -> string <> padding
         JustifyCenter    -> if even sizeDifference
-          then halfPadding ++ string ++       halfPadding
-          else halfPadding ++ string ++ ' ' : halfPadding
+          then halfPadding <> string <>       halfPadding
+          else halfPadding <> string <> ' ' `cons` halfPadding
         JustifyJustified -> justifyJustified size string
   where
     padding        = replicate sizeDifference ' '
-    halfPadding    = replicate (sizeDifference `div` 2) ' '
-    sizeDifference = size - stringSize
+    halfPadding    = replicate (toCount $ fromCount sizeDifference `div` 2) ' '
+    sizeDifference = fromMaybe 0 $ size - stringSize
     stringSize     = length string
+    even (CountOf n) = (n `mod` 2) == 0
 
 -- | Justifies the given string so that it takes up the space of the entire
 -- given box size.
-justifyJustified :: Int -> String -> String
+justifyJustified :: CountOf Char -> String -> String
 justifyJustified size string
-    | numberOfWords == 1 = string ++ replicate lengthDifference ' '
+    | numberOfWords == 1 = string <> replicate (toCount lengthDifference) ' '
     | otherwise          = justifiedString
   where
-    justifiedString  = intercalate spaces $ insertExcessSpaces excessChars stringWords
-    spaces           = replicate spacing ' '
+    justifiedString  = intercalate spaces $ insertExcessSpaces (toCount excessChars) stringWords
+    spaces           = replicate (toCount spacing) ' '
     excessChars      = lengthDifference `mod` (numberOfWords - 1)
     spacing          = lengthDifference `div` (numberOfWords - 1)
-    lengthDifference = size - wordsLength
-    wordsLength      = sum $ map length stringWords
-    numberOfWords    = length stringWords
+    lengthDifference = fromCount size - wordsLength
+    wordsLength      = foldl' (+) 0 $ fmap (fromCount . length) stringWords
+    numberOfWords    = fromCount (length stringWords)
     stringWords      = words string
 
 -- | Inserts excess spaces between words for the process of justifying a
 -- string.
-insertExcessSpaces :: Int -> [String] -> [String]
+insertExcessSpaces :: CountOf Char -> [String] -> [String]
 insertExcessSpaces _ []     = []
 insertExcessSpaces 0 w      = w
-insertExcessSpaces n (x:xs) = (x ++ " ") : insertExcessSpaces (n - 1) xs
+insertExcessSpaces n (x:xs) = (x <> " ") : insertExcessSpaces (fromMaybe 0 $ n - 1) xs
 
 {-
 data Attr = Attr
@@ -391,14 +413,14 @@ toElem attr =
 
 -- | Column for a table
 data Column = Column
-    { columnSize    :: Int     -- ^ Size of the column
+    { columnSize    :: CountOf Char     -- ^ Size of the column
     , columnName    :: String  -- ^ Name of the column. used in 'tableHeaders'
     , columnJustify :: Justify -- ^ The justification to use for the cell of this column
     , columnWrap    :: Bool    -- ^ if needed to wrap, whether text disappear or use multi lines row (unimplemented)
     }
 
 -- | Create a new column setting the right default parameters
-columnNew :: Int -> String -> Column
+columnNew :: CountOf Char -> String -> Column
 columnNew n name = Column
     { columnSize    = n
     , columnName    = name
@@ -419,7 +441,7 @@ tableCreate cols = Table { tColumns = cols, rowSeparator = "" }
 -- | Show the table headers
 tableHeaders :: TerminalDisplay -> Table -> IO ()
 tableHeaders td t =
-    tableAppend td t $ map columnName $ tColumns t
+    tableAppend td t $ columnName <$> tColumns t
 
 -- | Append a row to the table.
 --
@@ -428,11 +450,13 @@ tableHeaders td t =
 -- elements are dropped.
 tableAppend :: TerminalDisplay -> Table -> [String] -> IO ()
 tableAppend td (Table cols rowSep) l = do
-    let disp = case compare (length l) (length cols) of
-                        LT -> zip cols (l ++ replicate (length cols - length l) "")
-                        _  -> zip cols l
-    mapM_ printColRow $ intersperse Nothing $ map Just disp
+    let disp = case compare numelems numcols of
+                        LT -> zip cols (l <> replicate (fromMaybe 0 $ numcols - numelems) "")
+                        _  -> zip cols l :: [(Column, String)]
+    mapM_ printColRow $ intersperse Nothing $ fmap Just disp
   where
+    numelems = length l
+    numcols  = sizeCast Proxy (length cols) :: CountOf String
     printColRow Nothing =
         display td [T rowSep]
     printColRow (Just (c, fieldElement)) = do
