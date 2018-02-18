@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: cf121ac2c7b181c0a747d4e14412ca9616afb0619f50f40245ac60aebdb32029
+-- hash: f1210a25b39d57774f05986e1051a557381043b603dc648024471395e9d2a0ad
 
 name:           cli
 version:        0.2.0
@@ -29,7 +29,6 @@ library
     , basement
     , foundation
     , mtl
-    , transformers
   exposed-modules:
       Console.Display
       Console.Options
@@ -53,7 +52,6 @@ executable example
     , cli
     , foundation
     , mtl
-    , transformers
   other-modules:
       Paths_cli
   default-language: Haskell2010
