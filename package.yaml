@@ -1,0 +1,44 @@
+name:                cli
+version:             0.2.0
+homepage:            https://github.com/vincenthz/hs-cli#readme
+license:             BSD3
+copyright:           Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
+author:              Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
+maintainer:          vincent@snarc.org
+category:            cli
+extra-source-files:
+- README.md
+- LICENSE
+
+dependencies:
+  - base
+  - basement
+  - foundation
+
+default-extensions:
+    - TypeFamilies
+    - DataKinds
+    - OverloadedStrings
+
+library:
+  source-dirs: .
+  exposed-modules:
+    - Console.Display
+    - Console.Options
+  other-modules:
+    - Console.Options.Nid
+    - Console.Options.Flags
+    - Console.Options.Monad
+    - Console.Options.Types
+    - Console.Options.Utils
+
+executables:
+  example:
+    main:        Simple.hs
+    source-dirs: examples/
+    dependencies:
+    - cli
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
