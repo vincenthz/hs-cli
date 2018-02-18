@@ -186,20 +186,22 @@ help pmeta (Command hier _ commandOpts _) = do
             let cmdLength = maximum (map (length . fst) subs) + 2
             forM_ subs $ \(n, c) -> tell $ indent 2 (toList (justify JustifyRight (toCount cmdLength) (fromList n)) ++ getCommandDescription c ++ "\n")
             tell "\n"
-            mapM_ (printSub 1) subs
+            mapM_ (printSub 2) subs
         CommandLeaf _    ->
             return ()
   where
     tell = putStr
-    printSub iLevel (name, cmdOpt) =
+    printSub iLevel (name, cmdOpt) = do
+        tell $ "\nCommand `" ++ name ++ "':\n\n"
+        tell $ indent iLevel "Options:\n\n"
+        mapM_ (tell . printOpt iLevel) (getCommandOptions cmdOpt)
         case getCommandHier cmdOpt of
             CommandTree subs -> do
-                tell "\n"
-                tell "Commands:\n"
+                tell $ indent iLevel "Commands:\n"
                 let cmdLength = maximum (map (length . fst) subs) + 2 + iLevel
                 forM_ subs $ \(n, c) -> tell $ indent (iLevel + 2) (toList (justify JustifyRight (toCount cmdLength) (fromList n)) ++ getCommandDescription c ++ "\n")
                 tell "\n"
-                mapM_ (printSub (iLevel + 1)) subs
+                mapM_ (printSub (iLevel + 2)) subs
             CommandLeaf _ -> pure ()
         --tell . indent 2 ""
 
