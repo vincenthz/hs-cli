@@ -91,7 +91,6 @@ import           Console.Display (justify, Justify(..))
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Control.Monad.Writer
 
 import           Data.List
 import           Data.Version
@@ -172,7 +171,7 @@ parseOptions dsl args =
 --helpSubcommand :: [String] -> IO ()
 
 help :: ProgramMeta -> Command (IO ()) -> IO ()
-help pmeta (Command hier _ commandOpts _) = mapM_ putStrLn . lines $ snd $ runWriter $ do
+help pmeta (Command hier _ commandOpts _) = do
     tell (maybe "<program>" id (programMetaName pmeta) ++ " version " ++ maybe "<undefined>" id (programMetaVersion pmeta) ++ "\n")
     tell "\n"
     maybe (return ()) (\d -> tell d >> tell "\n\n") (programMetaDescription pmeta)
@@ -190,6 +189,7 @@ help pmeta (Command hier _ commandOpts _) = mapM_ putStrLn . lines $ snd $ runWr
         CommandLeaf _    ->
             return ()
   where
+    tell = putStr
     printSub iLevel (name, cmdOpt) = do
         tell ("\n" ++ name ++ " options:\n\n")
         mapM_ (tell . printOpt iLevel) (getCommandOptions cmdOpt)
