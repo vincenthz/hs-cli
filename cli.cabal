@@ -4,10 +4,12 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a1bc20556dd62c8c553793f4bb884c047192aa1bd54e0e86dd914ce422044323
+-- hash: bf0a618f8bd90a826dbcb6f5911cf0add6644863cb2148d8ecc6ae2e07938567
 
 name:           cli
 version:        0.2.0
+synopsis:       CLI
+description:    please see README.md
 category:       cli
 homepage:       https://github.com/vincenthz/hs-cli#readme
 author:         Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
@@ -34,7 +36,7 @@ library
       ./.
   default-extensions: TypeFamilies DataKinds OverloadedStrings
   build-depends:
-      base
+      base >0 && <10
     , basement
     , foundation
   default-language: Haskell2010
@@ -48,7 +50,7 @@ executable example
   default-extensions: TypeFamilies DataKinds OverloadedStrings
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base
+      base >0 && <10
     , basement
     , cli
     , foundation

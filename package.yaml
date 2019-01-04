@@ -6,6 +6,8 @@ copyright:           Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nico
 author:              Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@di-prima.fr>
 maintainer:          vincent@snarc.org
 category:            cli
+synopsis:            CLI
+description:         please see README.md
 extra-source-files:
 - README.md
 - LICENSE
