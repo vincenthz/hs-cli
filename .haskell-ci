@@ -1,15 +1,16 @@
 # compiler supported and their equivalent LTS
 compiler: ghc-8.0 lts-9.21
-compiler: ghc-8.2 lts-10.5
-compiler: ghc-8.4 ghc-8.4-alpha2
+compiler: ghc-8.2 lts-11.22
+compiler: ghc-8.4 lts-12.26
+compiler: ghc-8.6 lts-13.1
 
 # options
 
 # builds
 build: ghc-8.0
 build: ghc-8.2
-build: ghc-8.2 os=osx
-build: ghc-8.4 allowed-failure
+build: ghc-8.4
+build: ghc-8.6 os=linux,osx
 
 # packages
 package: '.'
