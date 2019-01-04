@@ -1,8 +1,10 @@
--- This file has been generated from package.yaml by hpack version 0.20.0.
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2fffb1ced379e12652a85a0ca0bdbfd66d1ff88c3d0aaa7c4a0e5657f1c1c2d2
+-- hash: a1bc20556dd62c8c553793f4bb884c047192aa1bd54e0e86dd914ce422044323
 
 name:           cli
 version:        0.2.0
@@ -14,20 +16,11 @@ copyright:      Vincent Hanquez <vincent@snarc.org>, Nicolas Di Prima <nicolas@d
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-cabal-version:  >= 1.10
-
 extra-source-files:
-    LICENSE
     README.md
+    LICENSE
 
 library
-  hs-source-dirs:
-      ./.
-  default-extensions: TypeFamilies DataKinds OverloadedStrings
-  build-depends:
-      base
-    , basement
-    , foundation
   exposed-modules:
       Console.Display
       Console.Options
@@ -37,10 +30,19 @@ library
       Console.Options.Monad
       Console.Options.Types
       Console.Options.Utils
+  hs-source-dirs:
+      ./.
+  default-extensions: TypeFamilies DataKinds OverloadedStrings
+  build-depends:
+      base
+    , basement
+    , foundation
   default-language: Haskell2010
 
 executable example
   main-is: Simple.hs
+  other-modules:
+      Paths_cli
   hs-source-dirs:
       examples/
   default-extensions: TypeFamilies DataKinds OverloadedStrings
@@ -50,6 +52,4 @@ executable example
     , basement
     , cli
     , foundation
-  other-modules:
-      Paths_cli
   default-language: Haskell2010
