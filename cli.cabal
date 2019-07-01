@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bf0a618f8bd90a826dbcb6f5911cf0add6644863cb2148d8ecc6ae2e07938567
+-- hash: 2b9f221b85a02efb932dbea813206bacdc0862bd1cbc367521f88c868aa0d04f
 
 name:           cli
 version:        0.2.0
@@ -54,4 +54,25 @@ executable example
     , basement
     , cli
     , foundation
+  default-language: Haskell2010
+
+test-suite cli-test
+  type: exitcode-stdio-1.0
+  main-is: Cli.hs
+  other-modules:
+      Paths_cli
+  hs-source-dirs:
+      tests/
+  default-extensions: TypeFamilies DataKinds OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , base >0 && <10
+    , basement
+    , cli
+    , directory
+    , foundation
+    , tasty
+    , tasty-quickcheck
+    , transformers
   default-language: Haskell2010

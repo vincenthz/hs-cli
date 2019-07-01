@@ -44,3 +44,19 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+
+tests:
+  cli-test:
+    main:         Cli.hs
+    source-dirs:  tests/
+    dependencies:
+    - cli
+    - directory
+    - transformers
+    - tasty
+    - tasty-quickcheck
+    - QuickCheck
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
