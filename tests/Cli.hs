@@ -17,7 +17,7 @@ import           Data.Functor.Identity
 import           Console.Options hiding (defaultMain)
 
 import           Prelude hiding (exp)
-
+import Debug.Trace
 flagA = flagParam (FlagShort 'a' <> FlagLong "aaa") (FlagRequired Right)
 flagB = flagParam (FlagShort 'b' <> FlagLong "bbb") (FlagOptional "xyz" Right)
 
@@ -89,6 +89,12 @@ testMany f = do
     action $ \toParam -> do
         return $ f $ toParam m
 
+testDefault :: (Maybe String -> Bool) -> OptionDesc (Identity Bool) ()
+testDefault f = do
+    flag <- flagB
+    action $ \toParam -> do
+      return $ f $ (traceShowId $ toParam flag)
+
 main = defaultMain $ testGroup "options"
     [ testGroup "help"
         [ testParseHelp "1" $ parseOptions (commandBar) ["options", "argument", "--help", "a"]
@@ -113,5 +119,9 @@ main = defaultMain $ testGroup "options"
     , testGroup "many"
         [ testParseSuccessRun "1" testMany [] (\l -> null l)
         , testParseSuccessRun "2" testMany ["--opt=1", "--opt", "2", "--opt=4", "--opt=3"] (\l -> sort l == [1,2,3,4])
+        ]
+    , testGroup "defaultParam"
+        [ testParseSuccessRun "1" testDefault [] (\l -> l == Just "xyz") -- Fail: actually Nothing
+        , testParseSuccessRun "2" testDefault ["-b", "value"] (\l -> l == Just "value") -- Fail: actually "xyz"
         ]
     ]
